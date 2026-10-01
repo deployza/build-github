@@ -1,0 +1,186 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# github-token — print a GitHub token that can read this org's repos.
+#
+# Installed to /usr/local/bin/github-token by build-github (github-pat.sh or
+# github-app.sh). Called by git-credential-github on every git fetch, and by
+# anything that needs the GitHub REST API:
+#
+#   curl -H "Authorization: Bearer $(github-token)" https://api.github.com/...
+#
+# WHAT IT PRINTS depends on /etc/github-auth/github-auth.env, which the configure
+# script wrote:
+#
+#   pat   the PAT itself
+#   app   a fresh GitHub App INSTALLATION token: a JWT signed with the App's
+#         private key (valid 9 minutes), exchanged for a token valid 1 hour,
+#         Contents read-only, narrowed to GITHUB_APP_REPOS if that is set
+#
+# WHERE THE CREDENTIALS COME FROM — first hit wins:
+#
+#   1. $GITHUB_TOKEN, if already set: printed as-is. A caller making many git
+#      calls mints once and exports it (mcp-refresh does), so an App run costs
+#      one mint, not one per fetch.
+#   2. The environment: GITHUB_PAT, or GITHUB_APP_ID + GITHUB_APP_KEY_B64. How a
+#      systemd unit gets them: EnvironmentFile=/etc/github-auth/secrets.env.
+#   3. /etc/github-auth/secrets.env, if this process can read it (root only) —
+#      written when the configure script ran with --store.
+#   4. Secret Manager, via gcloud, as whatever identity gcloud has — on a VM with
+#      no `gcloud auth login`, the VM's service account.
+#
+#   github-token --dump-secrets   (used by the configure scripts' --store; root)
+#     prints this mode's secrets as secrets.env lines, always from Secret Manager.
+#
+# NO `set -x` — this script handles the private key and prints the token.
+# -----------------------------------------------------------------------------
+set -euo pipefail
+
+readonly CONF_FILE="/etc/github-auth/github-auth.env"
+readonly SECRETS_FILE="/etc/github-auth/secrets.env"
+readonly API="https://api.github.com"
+
+die() { echo "[github-token] ERROR: $*" >&2; exit 1; }
+
+DUMP=0
+case "${1:-}" in
+  "") ;;
+  --dump-secrets) DUMP=1 ;;
+  *) die "usage: github-token [--dump-secrets]" ;;
+esac
+
+if [[ "$DUMP" == 0 && -n "${GITHUB_TOKEN:-}" ]]; then
+  printf '%s\n' "$GITHUB_TOKEN"
+  exit 0
+fi
+
+[[ -r "$CONF_FILE" ]] || die "${CONF_FILE} not found - run build-github's github-pat.sh or github-app.sh first"
+# Root-owned, written by the configure script with every value checked against
+# [A-Za-z0-9._,-] — names, never secrets.
+# shellcheck source=/dev/null
+source "$CONF_FILE"
+: "${GITHUB_AUTH_MODE:?GITHUB_AUTH_MODE is not set in ${CONF_FILE}}"
+: "${GITHUB_AUTH_PROJECT:?GITHUB_AUTH_PROJECT is not set in ${CONF_FILE}}"
+
+# load_stored: fill in, from secrets.env, whatever the environment did not set.
+# Parsed, not sourced: it holds values. Only the three known keys are taken.
+# Skipped when the configure script is re-reading Secret Manager for --store,
+# so a stale file can never be copied into the new one.
+load_stored() {
+  [[ "$DUMP" == 0 && -z "${GITHUB_AUTH_NO_STORE:-}" && -r "$SECRETS_FILE" ]] || return 0
+  local key value
+  while IFS='=' read -r key value; do
+    case "$key" in
+      GITHUB_PAT)         [[ -n "${GITHUB_PAT:-}" ]]         || GITHUB_PAT="$value" ;;
+      GITHUB_APP_ID)      [[ -n "${GITHUB_APP_ID:-}" ]]      || GITHUB_APP_ID="$value" ;;
+      GITHUB_APP_KEY_B64) [[ -n "${GITHUB_APP_KEY_B64:-}" ]] || GITHUB_APP_KEY_B64="$value" ;;
+    esac
+  done < "$SECRETS_FILE"
+}
+
+# secret <id>: the latest version, on stdout. Captured by the caller, never
+# passed as an argument, where `ps` would show it.
+secret() {
+  local value
+  value="$(gcloud secrets versions access latest --secret="$1" --project="$GITHUB_AUTH_PROJECT")" \
+    || die "could not read secret ${1} in ${GITHUB_AUTH_PROJECT}. Has a version been added, and can $(gcloud config get-value account 2>/dev/null || echo 'this identity') read it?"
+  [[ -n "$value" ]] || die "secret ${1} in ${GITHUB_AUTH_PROJECT} is empty"
+  printf '%s' "$value"
+}
+
+# single_line <name> <value>: secrets.env is a systemd EnvironmentFile, where
+# whitespace and quotes are interpreted. A PAT, an App id and base64 all fit.
+single_line() {
+  [[ "$2" =~ ^[A-Za-z0-9._~+/=:-]+$ ]] \
+    || die "${1} holds characters outside [A-Za-z0-9._~+/=:-] (a space or newline?) - re-add the secret with printf %s"
+}
+
+b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+
+# gh_call <method> <path> <bearer> [json-body]: one REST call, body on stdout.
+# The bearer goes to curl through --config on a pipe, not on argv, so `ps`
+# never shows it. A non-2xx answer dies with GitHub's own message.
+gh_call() {
+  local method="$1" path="$2" bearer="$3" body="${4:-}" resp code
+  local -a data=()
+  [[ -n "$body" ]] && data=(--data "$body")
+  resp="$(curl -sS --max-time 30 -X "$method" \
+      --config <(printf 'header = "Authorization: Bearer %s"\n' "$bearer") \
+      -H 'Accept: application/vnd.github+json' \
+      -H 'X-GitHub-Api-Version: 2022-11-28' \
+      "${data[@]}" -w '\n%{http_code}' "${API}${path}")" \
+    || die "${method} ${path}: could not reach ${API}"
+  code="${resp##*$'\n'}"
+  resp="${resp%$'\n'*}"
+  [[ "$code" == 2?? ]] \
+    || die "${method} ${path} -> HTTP ${code}: $(jq -r '.message // empty' <<<"$resp" 2>/dev/null)"
+  printf '%s' "$resp"
+}
+
+# --- pat ---------------------------------------------------------------------
+pat_mode() {
+  : "${GITHUB_PAT_SECRET:?GITHUB_PAT_SECRET is not set in ${CONF_FILE}}"
+  local pat="${GITHUB_PAT:-}"
+  [[ -n "$pat" ]] || pat="$(secret "$GITHUB_PAT_SECRET")"
+  single_line "$GITHUB_PAT_SECRET" "$pat"
+  if [[ "$DUMP" == 1 ]]; then
+    printf 'GITHUB_PAT=%s\n' "$pat"
+  else
+    printf '%s\n' "$pat"
+  fi
+}
+
+# --- app ---------------------------------------------------------------------
+app_mode() {
+  : "${GITHUB_APP_ID_SECRET:?GITHUB_APP_ID_SECRET is not set in ${CONF_FILE}}"
+  : "${GITHUB_APP_KEY_SECRET:?GITHUB_APP_KEY_SECRET is not set in ${CONF_FILE}}"
+  : "${GITHUB_APP_ORG:?GITHUB_APP_ORG is not set in ${CONF_FILE}}"
+  command -v openssl >/dev/null && command -v jq >/dev/null || die "app mode needs openssl and jq"
+
+  local app_id="${GITHUB_APP_ID:-}" pem
+  [[ -n "$app_id" ]] || app_id="$(secret "$GITHUB_APP_ID_SECRET")"
+  [[ "$app_id" =~ ^[0-9]+$ || "$app_id" =~ ^Iv[0-9A-Za-z.]+$ ]] \
+    || die "${GITHUB_APP_ID_SECRET} should hold the App ID (digits) or Client ID (Iv...)"
+
+  if [[ -n "${GITHUB_APP_KEY_B64:-}" ]]; then
+    pem="$(printf '%s' "$GITHUB_APP_KEY_B64" | base64 -d)" || die "GITHUB_APP_KEY_B64 is not valid base64"
+  else
+    pem="$(secret "$GITHUB_APP_KEY_SECRET")"
+  fi
+  [[ "$pem" == *"-----BEGIN"*"PRIVATE KEY-----"* ]] \
+    || die "${GITHUB_APP_KEY_SECRET} is not a PEM private key - load the .pem GitHub downloaded, with --data-file"
+
+  if [[ "$DUMP" == 1 ]]; then
+    printf 'GITHUB_APP_ID=%s\nGITHUB_APP_KEY_B64=%s\n' "$app_id" "$(printf '%s\n' "$pem" | base64 -w0)"
+    return
+  fi
+
+  # The App's JWT: iat backdated 60 s for clock skew, exp inside GitHub's 10 min.
+  local now header payload sig jwt
+  now="$(date +%s)"
+  header="$(printf '{"alg":"RS256","typ":"JWT"}' | b64url)"
+  payload="$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$app_id" | b64url)"
+  sig="$(printf '%s.%s' "$header" "$payload" \
+    | openssl dgst -sha256 -binary -sign <(printf '%s\n' "$pem") | b64url)" \
+    || die "could not sign with ${GITHUB_APP_KEY_SECRET} - is it the App's private key?"
+  jwt="${header}.${payload}.${sig}"
+
+  local inst_id body token
+  inst_id="$(gh_call GET "/orgs/${GITHUB_APP_ORG}/installation" "$jwt" | jq -r '.id // empty')"
+  [[ -n "$inst_id" ]] || die "the App is not installed on ${GITHUB_APP_ORG}"
+
+  # Contents read-only whatever the App was granted; narrowed to the listed repos
+  # when there are any, otherwise every repo the installation can see.
+  body="$(jq -cn --arg repos "${GITHUB_APP_REPOS:-}" '
+    {permissions: {contents: "read"}}
+    + (if $repos == "" then {} else {repositories: ($repos | split(","))} end)')"
+  token="$(gh_call POST "/app/installations/${inst_id}/access_tokens" "$jwt" "$body" | jq -r '.token // empty')"
+  [[ -n "$token" ]] || die "GitHub returned no token for installation ${inst_id}"
+  printf '%s\n' "$token"
+}
+
+load_stored
+case "$GITHUB_AUTH_MODE" in
+  pat) pat_mode ;;
+  app) app_mode ;;
+  *) die "GITHUB_AUTH_MODE '${GITHUB_AUTH_MODE}' in ${CONF_FILE} is neither pat nor app" ;;
+esac
