@@ -31,5 +31,6 @@ bin/git-credential-github       -> /usr/local/bin: git's helper, wraps github-to
 ```
 
 Consumers: build-ops `vm/mcp-vm/github.sh` (with `--store`; mcp-refresh and
-apidocs-publish then use git and `github-token`) and `vm/ops-vm/github.sh`
-(without).
+apidocs-publish then use git and `github-token`), and ops-vm, configured by
+hand once with `github-app.sh` (no `--store`; no unit, so a change here reaches
+it only when someone re-runs that).
