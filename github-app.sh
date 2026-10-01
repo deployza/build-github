@@ -5,14 +5,15 @@ set -euo pipefail
 # github-app.sh — configure this machine's git to reach GitHub as a GitHub App
 # whose id and private key are kept in Secret Manager.
 #
-#   sudo bash github-app.sh --app-id-secret github-app-id --key-secret github-app-private-key \
-#       --org deployza [--repos build-ops,www-apidocs] [--project dz-devops] \
-#       [--store] [--check deployza/build-ops]
+#   sudo bash github-app.sh [--app-id-secret ID] [--key-secret ID] [--org ORG] \
+#       [--repos build-ops,www-apidocs] [--project dz-devops] [--store] [--check deployza/build-ops]
 #
-#   --app-id-secret  Secret Manager id holding the App ID (or Client ID). Required.
+#   --app-id-secret  Secret Manager id holding the App ID (or Client ID).
+#                    Default: github-app-id.
 #   --key-secret     Secret Manager id holding the App's private key, the .pem
-#                    GitHub downloaded, loaded with --data-file. Required.
-#   --org            the org the App is installed on. Required.
+#                    GitHub downloaded, loaded with --data-file.
+#                    Default: github-app-private-key.
+#   --org            the org the App is installed on. Default: deployza.
 #   --repos          comma-separated repo names to narrow every token to.
 #                    Default: every repo the installation can see.
 #   --project        the project that holds the secrets. Default: this VM's own.
@@ -33,12 +34,12 @@ readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/github-lib.sh"
 
 usage() {
-  sed -n '8,10p' "$0" | sed 's/^# \{0,3\}//' >&2
+  sed -n '8,9p' "$0" | sed 's/^# \{0,3\}//' >&2
   exit 2
 }
 
 main() {
-  local id_secret="" key_secret="" org="" repos="" project="" store=0 check=""
+  local id_secret="github-app-id" key_secret="github-app-private-key" org="deployza" repos="" project="" store=0 check=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --app-id-secret) id_secret="${2:-}"; shift 2 ;;
@@ -53,7 +54,7 @@ main() {
     esac
   done
   [[ -n "$id_secret" && -n "$key_secret" && -n "$org" ]] \
-    || { gh_log "--app-id-secret, --key-secret and --org are required"; usage; }
+    || { gh_log "--app-id-secret, --key-secret and --org may not be empty"; usage; }
 
   gh_require_root_and_tools openssl jq
   [[ -n "$project" ]] || project="$(gh_default_project)"

@@ -16,9 +16,7 @@ git clone https://github.com/deployza/build-github.git
 sudo bash build-github/github-pat.sh --secret github-readonly-pat --check deployza/build-ops
 
 # ... or a GitHub App
-sudo bash build-github/github-app.sh \
-  --app-id-secret github-app-id --key-secret github-app-private-key \
-  --org deployza --check deployza/build-ops
+sudo bash build-github/github-app.sh      # secrets github-app-id + github-app-private-key, org deployza
 
 git clone https://github.com/deployza/build-ops.git     # any private repo, any user
 ```
