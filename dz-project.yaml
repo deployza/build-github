@@ -1,0 +1,10 @@
+# What this repo is, for the editor and the automated coding system. The schema is
+# ai-harness's plugins/dz-code/schemas/dz-project.schema.json.
+#
+# An ops repo: it builds, ships or runs software that no project calls. It declares no
+# stacks and publishes nothing; its rules are ai-harness's ops-standards.
+name: build-github
+kind: ops
+designs: [build-docs]             # the design of the build and operations
+commands:
+  build: bash check.sh            # its own check: offline, and it writes nothing
