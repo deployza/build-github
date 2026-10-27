@@ -1,0 +1,294 @@
+{
+  "extraKnownMarketplaces": {
+    "ai-harness": {
+      "source": {
+        "source": "github",
+        "repo": "deployza/ai-harness"
+      },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "dz-code@ai-harness": true
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "d=\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/cache/ai-harness/dz-code\"; s=$(ls -td \"$d\"/*/hooks/dz.sh 2>/dev/null | head -n 1); [ -z \"$s\" ] || bash \"$s\" status --line",
+    "refreshInterval": 10
+  },
+  "permissions": {
+    "allow": [
+      "Read(~/.claude/plugins/cache/ai-harness/**)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(bash *dz.sh* context*)",
+      "Bash(bash *dz.sh* help*)",
+      "Bash(bash *dz.sh* review latest*)",
+      "Bash(bash *dz.sh* run-plan*)",
+      "Bash(bash *dz.sh* tidy files*)",
+      "Bash(bash *dz.sh* tidy changed*)",
+      "Bash(bash *dz.sh* check)",
+      "Bash(bash *dz.sh* check *)",
+      "Bash(bash check.sh)"
+    ],
+    "ask": [
+      "Bash(git clean:*)",
+      "Bash(rm -r:*)",
+      "Bash(rm -R:*)",
+      "Bash(rm -rf:*)",
+      "Bash(rm -fr:*)",
+      "Bash(rm --recursive:*)",
+      "Bash(del /s:*)",
+      "Bash(rmdir /s:*)",
+      "PowerShell(Remove-Item * -Recurse*)",
+      "PowerShell(Remove-Item * -r *)",
+      "Edit(.github/workflows/**)"
+    ],
+    "deny": [
+      "Edit(.claude/**)",
+      "Edit(.git/**)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git merge:*)",
+      "Bash(git rebase:*)",
+      "Bash(git reset:*)",
+      "Bash(git revert:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git tag:*)",
+      "Bash(git stash drop:*)",
+      "Bash(git stash clear:*)",
+      "Bash(git remote add:*)",
+      "Bash(git remote remove:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh api:*)",
+      "Bash(gh repo:*)",
+      "Bash(gh release:*)",
+      "Bash(gh secret:*)",
+      "Bash(gh variable:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr close:*)",
+      "Bash(gh pr edit:*)",
+      "Bash(gh pr review:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh pr ready:*)",
+      "Bash(gh issue create:*)",
+      "Bash(gh issue close:*)",
+      "Bash(gh issue edit:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(gh workflow run:*)",
+      "Bash(gh workflow enable:*)",
+      "Bash(gh workflow disable:*)",
+      "Bash(gh run rerun:*)",
+      "Bash(gh run cancel:*)",
+      "Bash(gcloud auth:*)",
+      "Bash(gcloud config set:*)",
+      "Bash(gcloud projects:*)",
+      "Bash(gcloud iam:*)",
+      "Bash(gcloud secrets:*)",
+      "Bash(gcloud compute:*)",
+      "Bash(gcloud container:*)",
+      "Bash(gcloud sql:*)",
+      "Bash(gcloud pubsub:*)",
+      "Bash(gcloud scheduler:*)",
+      "Bash(gcloud app deploy:*)",
+      "Bash(gcloud run deploy:*)",
+      "Bash(gcloud run services update:*)",
+      "Bash(gcloud run services delete:*)",
+      "Bash(gcloud functions deploy:*)",
+      "Bash(gcloud functions delete:*)",
+      "Bash(gcloud storage cp:*)",
+      "Bash(gcloud storage rm:*)",
+      "Bash(gcloud storage buckets:*)",
+      "Bash(gsutil cp:*)",
+      "Bash(gsutil rm:*)",
+      "Bash(gsutil mb:*)",
+      "Bash(gsutil rb:*)",
+      "Bash(terraform apply:*)",
+      "Bash(terraform destroy:*)",
+      "Bash(terraform import:*)",
+      "Bash(terraform state:*)",
+      "Bash(terraform taint:*)",
+      "Bash(terraform untaint:*)",
+      "Bash(terraform force-unlock:*)",
+      "Bash(terraform workspace new:*)",
+      "Bash(terraform workspace delete:*)",
+      "Bash(terragrunt apply:*)",
+      "Bash(terragrunt destroy:*)",
+      "Bash(terragrunt run-all:*)",
+      "Bash(kubectl apply:*)",
+      "Bash(kubectl create:*)",
+      "Bash(kubectl delete:*)",
+      "Bash(kubectl patch:*)",
+      "Bash(kubectl edit:*)",
+      "Bash(kubectl scale:*)",
+      "Bash(kubectl rollout:*)",
+      "Bash(helm install:*)",
+      "Bash(helm upgrade:*)",
+      "Bash(helm uninstall:*)",
+      "Bash(npm publish:*)",
+      "Bash(docker push:*)",
+      "Bash(mvn deploy:*)",
+      "Bash(mvn release:*)",
+      "Bash(npm install -g:*)",
+      "Bash(npm install --global:*)",
+      "Bash(npm i -g:*)",
+      "Bash(pip install --user:*)",
+      "Bash(pip3 install --user:*)",
+      "Bash(pipx:*)",
+      "Bash(uv tool install:*)",
+      "Bash(brew:*)",
+      "Bash(apt:*)",
+      "Bash(apt-get:*)",
+      "Bash(dnf:*)",
+      "Bash(yum:*)",
+      "Bash(winget:*)",
+      "Bash(choco:*)",
+      "Bash(scoop:*)",
+      "Bash(sudo:*)",
+      "Bash(sh)",
+      "Bash(bash)",
+      "Bash(zsh)",
+      "Bash(sh -s:*)",
+      "Bash(bash -s:*)",
+      "PowerShell(iex)",
+      "PowerShell(Invoke-Expression)",
+      "Bash(claude plugin install:*)",
+      "Bash(claude plugin marketplace add:*)",
+      "Bash(claude mcp add:*)"
+    ]
+  },
+  "allowedMcpServers": [
+    {
+      "serverUrl": "https://src-mcp.deployza.com/mcp"
+    },
+    {
+      "serverUrl": "https://src-graphify.deployza.com/mcp"
+    }
+  ],
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false,
+    "excludedCommands": [
+      "gcloud *",
+      "gsutil *",
+      "bash *dz.sh* setup*",
+      "bash *dz.sh* --show setup*",
+      "bash *dz.sh* publish*",
+      "bash *dz.sh* --show publish*",
+      "bash *dz.sh* review push*",
+      "bash *dz.sh* settings --apply*"
+    ],
+    "network": {
+      "allowedDomains": [
+        "repo.maven.apache.org",
+        "repo1.maven.org",
+        "asia-east1-maven.pkg.dev",
+        "pypi.org",
+        "files.pythonhosted.org",
+        "registry.npmjs.org"
+      ],
+      "allowLocalBinding": true
+    },
+    "filesystem": {
+      "allowWrite": [
+        "~/.m2/repository",
+        "~/.npm",
+        "~/.cache/pip",
+        "~/.cache/uv",
+        "~/Library/Caches/pip",
+        "~/Library/Caches/uv"
+      ]
+    },
+    "credentials": {
+      "files": [
+        {
+          "path": "~/.config/gcloud",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.config/gh",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.git-credentials",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.config/git/credentials",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.ssh",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.npmrc",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.pypirc",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.m2/settings.xml",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.m2/settings-security.xml",
+          "mode": "deny"
+        }
+      ],
+      "envVars": [
+        {
+          "name": "GOOGLE_APPLICATION_CREDENTIALS",
+          "mode": "deny"
+        },
+        {
+          "name": "CLOUDSDK_AUTH_ACCESS_TOKEN_FILE",
+          "mode": "deny"
+        },
+        {
+          "name": "CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE",
+          "mode": "deny"
+        },
+        {
+          "name": "GH_TOKEN",
+          "mode": "deny"
+        },
+        {
+          "name": "GITHUB_TOKEN",
+          "mode": "deny"
+        },
+        {
+          "name": "GH_ENTERPRISE_TOKEN",
+          "mode": "deny"
+        },
+        {
+          "name": "NPM_TOKEN",
+          "mode": "deny"
+        },
+        {
+          "name": "NODE_AUTH_TOKEN",
+          "mode": "deny"
+        },
+        {
+          "name": "TWINE_PASSWORD",
+          "mode": "deny"
+        },
+        {
+          "name": "UV_PUBLISH_TOKEN",
+          "mode": "deny"
+        },
+        {
+          "name": "UV_PUBLISH_PASSWORD",
+          "mode": "deny"
+        }
+      ]
+    }
+  }
+}
