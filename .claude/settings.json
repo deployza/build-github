@@ -8,9 +8,6 @@
       "autoUpdate": true
     }
   },
-  "enabledPlugins": {
-    "dz-code@ai-harness": true
-  },
   "statusLine": {
     "type": "command",
     "command": "d=\"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/cache/ai-harness/dz-code\"; s=$(ls -td \"$d\"/*/hooks/dz.sh 2>/dev/null | head -n 1); [ -z \"$s\" ] || bash \"$s\" status --line",
@@ -30,7 +27,9 @@
       "Bash(bash *dz.sh* tidy changed*)",
       "Bash(bash *dz.sh* check)",
       "Bash(bash *dz.sh* check *)",
-      "Bash(bash check.sh)"
+      "Bash(bash check.sh)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "ask": [
       "Bash(git clean:*)",
@@ -48,8 +47,6 @@
     "deny": [
       "Edit(.claude/**)",
       "Edit(.git/**)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(git merge:*)",
       "Bash(git rebase:*)",
@@ -159,7 +156,8 @@
       "PowerShell(Invoke-Expression)",
       "Bash(claude plugin install:*)",
       "Bash(claude plugin marketplace add:*)",
-      "Bash(claude mcp add:*)"
+      "Bash(claude mcp add:*)",
+      "Bash(git commit --amend:*)"
     ]
   },
   "allowedMcpServers": [
